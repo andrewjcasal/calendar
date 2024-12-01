@@ -28,7 +28,8 @@ export const getEventsForDay = async (calendar: calendar_v3.Calendar, dayOffset:
       tasks: tasks.map(t => ({
         title: t.content,
         duration: 30,
-        colorId: "8"
+        colorId: "6",
+        source: "todoist"
       })),
       isDayOff: timeBlockingEvents.data.items?.find(t => t.summary === "Day off")
   }
@@ -96,9 +97,7 @@ export const insertEvent = (calendar: calendar_v3.Calendar,{
         dateTime: endTime,
       },
       colorId,
-      extendedProperties: {
-        private: extendedProperties,
-      },
+      extendedProperties,
     },
   });
 };
@@ -133,6 +132,7 @@ export const addDurationsToCalendarEvents = (events: calendar_v3.Schema$Event[] 
       endTime:  [endTime.getHours(), endTime.getMinutes()],
       duration,
       colorId: i.colorId || "5",
+      source: i.extendedProperties?.private?.source,
     };
   }).filter(t => t !== null);
 

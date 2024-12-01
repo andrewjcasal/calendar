@@ -99,7 +99,7 @@ export default async function App({ searchParams }: AppProps) {
   //   durationUnit: "minute",
   // });
 
-  for (var x = 1; x <= 1; x++) {
+  for (var x = 0; x <= 0; x++) {
     const {
       timeBlockingEvents: timeBlockingEvents1,
       tasks,
@@ -134,11 +134,13 @@ export default async function App({ searchParams }: AppProps) {
     );
 
     const allEvents = [] as {
+      id: string | null | undefined;
       title: string;
       duration: number;
       colorId: string;
       startTime: number[];
       endTime: number[];
+      source?: string;
     }[];
 
     let nextTimeEventStartTime = [] as number[];
@@ -154,6 +156,20 @@ export default async function App({ searchParams }: AppProps) {
           ? [currTime.getHours(), currTime.getMinutes()]
           : [10, 0]
         : [10, 0];
+
+    const deletedTasks = fixedTimeEvents.filter(
+      (e) =>
+        e.source === "todoist" &&
+        !!e.id &&
+        !tasks.find((t) => t.title === e.title)
+    );
+
+    for (const d of deletedTasks) {
+      await calendar.events.delete({
+        calendarId: process.env.GOOGLE_CALENDAR_ID,
+        eventId: d.id,
+      });
+    }
 
     while (fixedTimeEvents.length || flexibleEvents.length) {
       while (fixedTimeEvents.length) {
@@ -190,6 +206,7 @@ export default async function App({ searchParams }: AppProps) {
             ...flexibleEvent,
             startTime: date,
             endTime,
+            id: "",
           });
           date = endTime;
         }
@@ -204,7 +221,6 @@ export default async function App({ searchParams }: AppProps) {
         }
       }
     }
-    console.log("all", allEvents);
 
     for (const e of allEvents) {
       const meetingTitle = e.title;
@@ -219,6 +235,7 @@ export default async function App({ searchParams }: AppProps) {
       const hasEvent = timeBlockingEvents
         ?.map((i) => i.title)
         .includes(e.title);
+
       if (hasEvent) {
         const calendarEvent = timeBlockingEvents?.find(
           (t) => t.title === e.title
@@ -245,6 +262,11 @@ export default async function App({ searchParams }: AppProps) {
           startTime: meetingStart,
           endTime: meetingEnd,
           colorId,
+          extendedProperties: {
+            private: {
+              source: e.source,
+            },
+          },
         });
       }
     }

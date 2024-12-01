@@ -13,7 +13,7 @@ export const fixedHabits = [
     colorId: "7",
     duration: 30,
   },
-];
+].map(f => ({...f, source: 'fixed', id: ""}));
 
 
 export const flexibleWorkHabits = [
@@ -57,4 +57,4 @@ export const flexibleWorkHabits = [
     duration: 30,
     colorId: "5",
   },
-];
+].map(f => ({...f, source: 'flexible'}));
