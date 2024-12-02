@@ -130,6 +130,32 @@ export default async function App({ searchParams }: AppProps) {
       );
     });
 
+    const morningRoutine = fixedTimeEvents.find(
+      (event) => event.title === "Morning Routine"
+    );
+    if (morningRoutine) {
+      morningRoutine.startTime = [7, 0];
+      morningRoutine.endTime = [9, 0];
+    }
+
+    const meetingEvents = fixedTimeEvents.filter(
+      (event) => event.source === "meeting"
+    );
+    let currentTime =
+      meetingEvents.length > 0
+        ? meetingEvents[meetingEvents.length - 1].endTime
+        : [9, 0];
+
+    fixedTimeEvents.forEach((event) => {
+      if (event.title !== "Morning Routine" && event.source !== "meeting") {
+        event.startTime = currentTime;
+        event.endTime = calculateEndDate(currentTime, event.duration);
+        currentTime = event.endTime;
+      }
+    });
+
+    console.log("fixedTimeEvents", fixedTimeEvents);
+
     const flexibleEvents1 = !isDayOff
       ? unionBy(flexibleWorkHabits, tasks, "title")
       : tasks;
