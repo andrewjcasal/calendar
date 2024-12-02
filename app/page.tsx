@@ -61,57 +61,62 @@ export default async function App({ searchParams }: AppProps) {
 
   console.log("auth", authorizationUrl);
 
-  const tasks = await api.getTasks({
-    filter: "@this_week",
-  });
-
-  const formattedTasks = tasks.map((t) => {
-    const [title, duration] = t.content.split(" | ");
-    return {
-      title,
-      duration: Number(duration),
-      colorId: "6",
-    };
-  });
-
-  // await calendar.events
-  //   .list({
-  //     calendarId: process.env.GOOGLE_CALENDAR_ID,
-  //     privateExtendedProperty: "source=todoist",
-  //   })
-  //   .then((events) => console.log("events", events.data?.items));
-  // for (var j = 0; j < tasks.length; j++) {
-  //   const meetingStart = new Date();
-  //   meetingStart.setHours(8, 0, 0, 0);
-  //   const meetingEnd = new Date();
-  //   meetingEnd.setHours(8, 30, 0, 0);
-  //   insertEvent({
-  //     title: tasks[j].content,
-  //     startTime: meetingStart,
-  //     endTime: meetingEnd,
-  //     colorId: "3",
-  //     extendedProperties: { taskId: tasks[j].id, source: "todoist" },
-  //   });
-  // }
-
-  // await api.updateTask("7439128804", {
-  //   duration: 15,
-  //   durationUnit: "minute",
-  // });
-
   for (var x = 0; x <= 0; x++) {
     const {
       timeBlockingEvents: timeBlockingEvents1,
+      workEvents,
       tasks,
       isDayOff,
     } = await getEventsForDay(calendar, x);
+
+    console.log("workEvents", workEvents);
+    workEvents.sort(
+      (a, b) => getMinutes(a.startTime) - getMinutes(b.startTime)
+    );
+    const mergedEvents = [];
+    let currentEvent = null;
+
+    for (const event of workEvents) {
+      if (!currentEvent) {
+        currentEvent = { ...event };
+      } else {
+        if (getMinutes(event.startTime) <= getMinutes(currentEvent.endTime)) {
+          // Merge the events
+          currentEvent.endTime = [
+            Math.floor(
+              Math.max(
+                getMinutes(event.endTime),
+                getMinutes(currentEvent.endTime)
+              ) / 60
+            ),
+            Math.max(
+              getMinutes(event.endTime),
+              getMinutes(currentEvent.endTime)
+            ) % 60,
+          ];
+          currentEvent.duration =
+            getMinutes(currentEvent.endTime) -
+            getMinutes(currentEvent.startTime);
+          currentEvent.title = "Meeting"; // Set a generic title for merged events
+        } else {
+          mergedEvents.push(currentEvent);
+          currentEvent = { ...event };
+        }
+      }
+    }
+
+    if (currentEvent) {
+      mergedEvents.push(currentEvent);
+    }
+
+    console.log("me", mergedEvents);
 
     const timeBlockingEvents = timeBlockingEvents1?.filter(
       (t) => t.title !== "Day off"
     );
 
     const fixedTimeEvents = unionBy(
-      timeBlockingEvents,
+      [...timeBlockingEvents, ...mergedEvents],
       fixedHabits,
       "title"
     ).sort((a, b) => {

@@ -19,12 +19,19 @@ export const getEventsForDay = async (calendar: calendar_v3.Calendar, dayOffset:
       timeMax: endDate.toISOString(),
   });
 
+  const workEvents = await calendar.events.list({
+    calendarId: process.env.GOOGLE_WORK_CALENDAR_ID,
+    timeMin: startDate.toISOString(),
+    timeMax: endDate.toISOString(),
+});
+
   const tasks = await api.getTasks({
     filter: `p1 | ${startDate.getMonth() + 1}/${startDate.getDate()}`,
   });
 
   return {
       timeBlockingEvents: addDurationsToCalendarEvents(timeBlockingEvents.data.items),
+      workEvents: addDurationsToCalendarEvents(workEvents.data.items, "meeting"),
       tasks: tasks.map(t => ({
         title: t.content,
         duration: 30,
@@ -114,7 +121,7 @@ export const calculateEndDate = (date: number[], duration: number) => {
   return [hr, min]
 }
 
-export const addDurationsToCalendarEvents = (events: calendar_v3.Schema$Event[] | undefined) => 
+export const addDurationsToCalendarEvents = (events: calendar_v3.Schema$Event[] | undefined, source?: string) => 
   (events || []).map((i) => {
     const endTime = !!i.end?.dateTime ? new Date(i.end?.dateTime) : null
     const startTime = !!i.start?.dateTime ? new Date(i.start?.dateTime) : null;
@@ -132,7 +139,7 @@ export const addDurationsToCalendarEvents = (events: calendar_v3.Schema$Event[] 
       endTime:  [endTime.getHours(), endTime.getMinutes()],
       duration,
       colorId: i.colorId || "5",
-      source: i.extendedProperties?.private?.source,
+      source: source || i.extendedProperties?.private?.source,
     };
   }).filter(t => t !== null);
 
